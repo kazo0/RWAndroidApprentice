@@ -28,9 +28,14 @@ class GameActivity : AppCompatActivity() {
         tapMeButton = findViewById(R.id.tap_me_button)
 
         tapMeButton.setOnClickListener { v -> incrementScore() }
+
+        resetGame()
     }
 
     private fun incrementScore() {
+        if (!gameStarted) {
+            startGame()
+        }
         score++
 
         val newScore = getString(R.string.your_score, Integer.toString(score))
@@ -54,7 +59,7 @@ class GameActivity : AppCompatActivity() {
             }
 
             override fun onFinish() {
-
+                endGame()
             }
         }
 
@@ -62,10 +67,12 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun startGame() {
-        // start game logic
+        countDownTimer.start()
+        gameStarted = true
     }
 
     private fun endGame() {
-        // end game logic
+        Toast.makeText(this, getString(R.string.game_over_message, Integer.toString(score)), Toast.LENGTH_LONG).show()
+        resetGame()
     }
 }
