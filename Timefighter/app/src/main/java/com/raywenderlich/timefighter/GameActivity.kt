@@ -1,5 +1,6 @@
 package com.raywenderlich.timefighter
 
+import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.support.annotation.IntegerRes
@@ -106,12 +107,16 @@ class GameActivity : AppCompatActivity() {
 
         val initialTimeLeft = getString(R.string.time_left, "60")
         timeLeftTextView.text = initialTimeLeft
+        timeLeftTextView.setTextColor(Color.BLACK)
 
         countDownTimer = object : CountDownTimer(initialCountDown, countDownInterval) {
             override fun onTick(millisUntilFinished: Long) {
                 timeLeft = millisUntilFinished / 1000
 
                 timeLeftTextView.text = getString(R.string.time_left, timeLeft.toString())
+                if (timeLeft <= 10) {
+                    timeLeftTextView.setTextColor(Color.RED)
+                }
             }
 
             override fun onFinish() {
