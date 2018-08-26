@@ -1,23 +1,26 @@
-package com.raywenderlich.listmaker
+package com.raywenderlich.listmaker.Activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.Snackbar
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.LinearLayoutCompat
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.text.InputType
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
+import com.raywenderlich.listmaker.View.ListSelectionRecyclerViewAdapter
+import com.raywenderlich.listmaker.Model.ListDataManager
+import com.raywenderlich.listmaker.Model.TaskList
+import com.raywenderlich.listmaker.R
 
 import kotlinx.android.synthetic.main.activity_list.*
 
 class MainActivity : AppCompatActivity() {
     companion object {
         val INTENT_LIST_KEY = "list"
+        val LIST_DETAIL_REQUEST_CODE = 123
     }
 
     val listDataManager = ListDataManager(this)
@@ -35,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         val lists = listDataManager.readLists()
         listsRecyclerView = findViewById(R.id.lists_recyclerview)
         listsRecyclerView.layoutManager = LinearLayoutManager(this)
-        listsRecyclerView.adapter = ListSelectionRecyclerViewAdapter(lists) { taskList -> showListDetail(taskList)}
+        listsRecyclerView.adapter = ListSelectionRecyclerViewAdapter(lists) { taskList -> showListDetail(taskList) }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -52,6 +55,21 @@ class MainActivity : AppCompatActivity() {
             R.id.action_settings -> true
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            LIST_DETAIL_REQUEST_CODE -> data?.let {
+                listDataManager.saveList(data.getParcelableExtra(INTENT_LIST_KEY))
+                updateLists();
+            }
+        }
+    }
+
+    private fun updateLists() {
+        val lists = listDataManager.readLists()
+        listsRecyclerView.adapter = ListSelectionRecyclerViewAdapter(lists) { taskList -> showListDetail(taskList) }
     }
 
     private fun showCreateListDialog() {
@@ -77,6 +95,6 @@ class MainActivity : AppCompatActivity() {
     private fun showListDetail(list: TaskList) {
         val listDetailIntent = Intent(this, ListDetailActivity::class.java)
         listDetailIntent.putExtra(INTENT_LIST_KEY, list)
-        startActivity(listDetailIntent)
+        startActivityForResult(listDetailIntent, LIST_DETAIL_REQUEST_CODE)
     }
 }

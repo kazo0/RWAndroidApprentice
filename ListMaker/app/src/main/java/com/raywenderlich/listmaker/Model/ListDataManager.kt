@@ -1,4 +1,4 @@
-package com.raywenderlich.listmaker
+package com.raywenderlich.listmaker.Model
 
 import android.content.Context
 import android.preference.PreferenceManager
