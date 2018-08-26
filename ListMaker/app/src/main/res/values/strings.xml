@@ -5,4 +5,7 @@
     <string name="create_list">Create</string>
     <string name="task_to_add">Add Task</string>
     <string name="add_task">Add</string>
+    <string name="list_fragment_tag">List Fragment</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

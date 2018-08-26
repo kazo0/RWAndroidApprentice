@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import com.raywenderlich.listmaker.Model.TaskList
 import com.raywenderlich.listmaker.R
 
-class ListItemsRecyclerViewAdapter(val list: TaskList) : RecyclerView.Adapter<ListItemsViewHolder>() {
+class ListItemsRecyclerViewAdapter(var list: TaskList) : RecyclerView.Adapter<ListItemsViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListItemsViewHolder {
         val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.task_view_holder, parent, false)
