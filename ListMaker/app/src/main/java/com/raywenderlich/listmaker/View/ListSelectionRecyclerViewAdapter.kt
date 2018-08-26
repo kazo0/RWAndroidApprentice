@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import com.raywenderlich.listmaker.Model.TaskList
 import com.raywenderlich.listmaker.R
 
-class ListSelectionRecyclerViewAdapter(val lists: ArrayList<TaskList>, val onClick: (TaskList) -> Unit)
+class ListSelectionRecyclerViewAdapter(var lists: ArrayList<TaskList>, val onClick: (TaskList) -> Unit)
     : RecyclerView.Adapter<ListSelectionViewHolder>() {
 
     override fun getItemCount(): Int {

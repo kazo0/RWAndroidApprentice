@@ -17,6 +17,7 @@ import com.raywenderlich.listmaker.View.ListSelectionRecyclerViewAdapter
 import com.raywenderlich.listmaker.Model.ListDataManager
 import com.raywenderlich.listmaker.Model.TaskList
 import com.raywenderlich.listmaker.R
+import com.raywenderlich.listmaker.View.ListItemsRecyclerViewAdapter
 
 import kotlinx.android.synthetic.main.activity_list.*
 
@@ -125,18 +126,21 @@ class MainActivity : AppCompatActivity(), ListSelectionFragment.OnListItemFragme
 
         title = getString(R.string.app_name)
 
-        listFragment?.list?.let {
-            listSelectionFragment?.listDataManager?.saveList(it)
-        }
-
         listFragment?.let {
+
+            listSelectionFragment?.listDataManager?.saveList(it.list)
             supportFragmentManager
                     .beginTransaction()
                     .remove(it)
                     .commit()
-            listFragment = null
-        }
 
+            listFragment = null
+            val listRecyclerAdapter = listSelectionFragment?.listsRecyclerView.adapter as? ListSelectionRecyclerViewAdapter
+            listRecyclerAdapter?.let {
+                it.lists = listSelectionFragment?.listDataManager?.readLists()
+                it.notifyDataSetChanged()
+            }
+        }
         fab.setOnClickListener { _ -> showCreateListDialog()}
     }
 }
