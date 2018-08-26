@@ -2,10 +2,12 @@ package com.raywenderlich.listmaker
 
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 
-class ListSelectionRecyclerViewAdapter(val lists: ArrayList<TaskList>)
+class ListSelectionRecyclerViewAdapter(val lists: ArrayList<TaskList>, val onClick: (TaskList) -> Unit)
     : RecyclerView.Adapter<ListSelectionViewHolder>() {
+
     override fun getItemCount(): Int {
         return lists.size
     }
@@ -13,7 +15,9 @@ class ListSelectionRecyclerViewAdapter(val lists: ArrayList<TaskList>)
     override fun onBindViewHolder(holder: ListSelectionViewHolder, position: Int) {
         holder.listPosition.text = (position + 1).toString()
         holder.listTitle.text = lists[position].name
+        holder.itemView.setOnClickListener { _ -> onClick(lists[position]) }
     }
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListSelectionViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -26,4 +30,8 @@ class ListSelectionRecyclerViewAdapter(val lists: ArrayList<TaskList>)
         lists.add(list)
         notifyDataSetChanged()
     }
+}
+
+interface ListSelectionRecyclerViewClickListener {
+    fun listItemClicked(list: TaskList)
 }

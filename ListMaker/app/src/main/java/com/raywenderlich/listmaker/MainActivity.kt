@@ -1,5 +1,6 @@
 package com.raywenderlich.listmaker
 
+import android.content.Intent
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AlertDialog
@@ -15,6 +16,9 @@ import android.widget.EditText
 import kotlinx.android.synthetic.main.activity_list.*
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        val INTENT_LIST_KEY = "list"
+    }
 
     val listDataManager = ListDataManager(this)
     lateinit var listsRecyclerView: RecyclerView
@@ -31,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         val lists = listDataManager.readLists()
         listsRecyclerView = findViewById(R.id.lists_recyclerview)
         listsRecyclerView.layoutManager = LinearLayoutManager(this)
-        listsRecyclerView.adapter = ListSelectionRecyclerViewAdapter(lists)
+        listsRecyclerView.adapter = ListSelectionRecyclerViewAdapter(lists) { taskList -> showListDetail(taskList)}
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -52,7 +56,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCreateListDialog() {
         val listTitleEditText = EditText(this)
-        listTitleEditText.inputType = InputType.TYPE_CLASS_TEXT
+        listTitleEditText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
 
         AlertDialog.Builder(this)
                 .setTitle(R.string.name_of_list)
@@ -65,7 +69,14 @@ class MainActivity : AppCompatActivity() {
                     recyclerAdapter?.addList(list)
 
                     dialog.dismiss()
+                    showListDetail(list)
                 }
                 .show()
+    }
+
+    private fun showListDetail(list: TaskList) {
+        val listDetailIntent = Intent(this, ListDetailActivity::class.java)
+        listDetailIntent.putExtra(INTENT_LIST_KEY, list)
+        startActivity(listDetailIntent)
     }
 }
