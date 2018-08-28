@@ -5,8 +5,7 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.util.Log
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -62,10 +61,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestLocationPermission()
         } else {
+            map.isMyLocationEnabled = true
+
             fusedLocationProviderClient.lastLocation.addOnCompleteListener {
                 if (it.result != null) {
                     val latlng = LatLng(it.result.latitude, it.result.longitude)
-                    map.addMarker(MarkerOptions().position(latlng).title("You are here!"))
 
                     val update = CameraUpdateFactory.newLatLngZoom(latlng, 16.0f)
                     map.moveCamera(update)
