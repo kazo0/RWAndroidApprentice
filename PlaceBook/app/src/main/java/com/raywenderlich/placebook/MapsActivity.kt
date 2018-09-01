@@ -2,6 +2,7 @@ package com.raywenderlich.placebook
 
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
@@ -18,9 +19,11 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PointOfInterest
+import com.raywenderlich.placebook.adapter.BookmarkInfoWindowAdapter
 import java.util.jar.Manifest
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener {
@@ -45,6 +48,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         getCurrentLocation()
 
         setupGoogleClient()
+        map.setInfoWindowAdapter(BookmarkInfoWindowAdapter(this))
         map.setOnPoiClickListener {
             displayPoi(it)
         }
@@ -144,14 +148,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
                 .setResultCallback { result ->
                     if (result.status.isSuccess) {
                         val image = result.bitmap
+                        displayPoiDisplayStep(place, image)
                     } else {
-
+                        displayPoiDisplayStep(place, null)
                     }
                 }
     }
 
     private fun displayPoiDisplayStep(place: Place, photo: Bitmap?) {
-
+        val marker = map.addMarker(MarkerOptions()
+                .position(place.latLng)
+                .title(place.name.toString())
+                .snippet(place.phoneNumber.toString())
+        )
+        marker.tag = photo
     }
 
     companion object {
