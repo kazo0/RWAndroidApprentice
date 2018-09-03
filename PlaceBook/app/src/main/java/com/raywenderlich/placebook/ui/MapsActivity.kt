@@ -1,5 +1,6 @@
 package com.raywenderlich.placebook.ui
 
+import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
 import android.content.pm.PackageManager
@@ -19,12 +20,12 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.gms.maps.model.PointOfInterest
+import com.google.android.gms.maps.model.*
 import com.raywenderlich.placebook.R
 import com.raywenderlich.placebook.adapter.BookmarkInfoWindowAdapter
 import com.raywenderlich.placebook.viewmodel.MapsViewModel
+import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.launch
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener {
 
@@ -53,11 +54,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         setupViewModel()
     }
 
-    fun setupMapListeners() {
+    private fun setupMapListeners() {
         map.setInfoWindowAdapter(BookmarkInfoWindowAdapter(this))
         map.setOnPoiClickListener {
             displayPoi(it)
         }
+        map.setOnInfoWindowClickListener { handleInfoWindowClick(it) }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -167,15 +169,56 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
                 .title(place.name.toString())
                 .snippet(place.phoneNumber.toString())
         )
-        marker.tag = photo
+        marker.tag = PlaceInfo(place, photo)
     }
 
     private fun setupViewModel() {
         mapsViewModel = ViewModelProviders.of(this).get(MapsViewModel::class.java)
+        createBookmarkViewObserver()
+    }
+
+    private fun handleInfoWindowClick(marker: Marker) {
+        val placeInfo = marker.tag as? PlaceInfo
+        if (placeInfo?.place != null && placeInfo?.image != null) {
+            launch(CommonPool) {
+                mapsViewModel.addBookmarkFromPlace(placeInfo.place, placeInfo.image)
+            }
+        }
+
+        marker.remove()
+    }
+
+    private fun addPlaceMarker(bookmark: MapsViewModel.BookmarkView): Marker? {
+        val marker = map.addMarker(MarkerOptions()
+                .position(bookmark.location)
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                .alpha(0.8f)
+        )
+
+        marker.tag = bookmark
+        return marker
+    }
+
+    private fun displayAllBookmarks(bookmarks: List<MapsViewModel.BookmarkView>) {
+        for (bookmark in bookmarks) {
+            addPlaceMarker(bookmark)
+        }
+    }
+
+    private fun createBookmarkViewObserver() {
+        mapsViewModel.getBookmarkViews()?.observe(this,
+                android.arch.lifecycle.Observer<List<MapsViewModel.BookmarkView>> {
+                    map.clear()
+                    it?.let {
+                        displayAllBookmarks(it)
+                    }
+                })
     }
 
     companion object {
         private const val REQUEST_LOCATION = 1
         private const val TAG = "MapsActivity"
     }
+
+    class PlaceInfo(val place: Place? = null, val image: Bitmap? = null)
 }
