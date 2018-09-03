@@ -169,7 +169,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
                 .title(place.name.toString())
                 .snippet(place.phoneNumber.toString())
         )
-        marker.tag = PlaceInfo(place, photo)
+        marker?.tag = PlaceInfo(place, photo)
+        marker?.showInfoWindow()
     }
 
     private fun setupViewModel() {
@@ -192,6 +193,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         val marker = map.addMarker(MarkerOptions()
                 .position(bookmark.location)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                .title(bookmark.name)
+                .snippet(bookmark.phone)
                 .alpha(0.8f)
         )
 
