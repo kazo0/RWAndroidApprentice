@@ -9,6 +9,8 @@ import android.graphics.Bitmap
 import com.raywenderlich.placebook.model.Bookmark
 import com.raywenderlich.placebook.repository.BookmarkRepo
 import com.raywenderlich.placebook.util.ImageUtils
+import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.launch
 
 class BookmarkDetailsViewModel(application: Application) : AndroidViewModel(application) {
     private var bookmarkRepo: BookmarkRepo = BookmarkRepo(getApplication())
@@ -22,6 +24,15 @@ class BookmarkDetailsViewModel(application: Application) : AndroidViewModel(appl
         return bookmarkDetailsView
     }
 
+    fun updateBookmark(bookmarkDetailsView: BookmarkDetailsView) {
+        launch(CommonPool) {
+            val bookmark = bookmarkDetailsViewToBookmark(bookmarkDetailsView)
+            bookmark?.let {
+                bookmarkRepo.updateBookmark(it)
+            }
+        }
+    }
+
     private fun bookmarkToBookmarkDetailsView(bookmark: Bookmark) : BookmarkDetailsView {
         return BookmarkDetailsView(
                 id = bookmark.id,
@@ -30,6 +41,21 @@ class BookmarkDetailsViewModel(application: Application) : AndroidViewModel(appl
                 address = bookmark.address,
                 notes = bookmark.notes
         )
+    }
+
+    private fun bookmarkDetailsViewToBookmark(bookmarkDetailsView: BookmarkDetailsView) : Bookmark? {
+        val bookmark = bookmarkDetailsView.id?.let {
+            bookmarkRepo.getBookmark(it)
+        }
+
+        if (bookmark != null) {
+            bookmark.id = bookmarkDetailsView.id
+            bookmark.name = bookmarkDetailsView.name
+            bookmark.phone = bookmarkDetailsView.phone
+            bookmark.address = bookmarkDetailsView.address
+            bookmark.notes = bookmarkDetailsView.notes
+        }
+        return bookmark
     }
 
     private fun mapBookmarkToBookmarkDetailsView(bookmarkId: Long) {

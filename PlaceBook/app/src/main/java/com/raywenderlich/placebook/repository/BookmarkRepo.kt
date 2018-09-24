@@ -25,5 +25,13 @@ class BookmarkRepo(private val context: Context) {
         return bookmark
     }
 
+    fun updateBookmark(bookmark: Bookmark) {
+        bookmarkDao.updateBookmark(bookmark)
+    }
+
+    fun getBookmark(bookmarkId: Long) : Bookmark {
+        return bookmarkDao.loadBookmark(bookmarkId)
+    }
+
     fun createBookmark() = Bookmark()
 }
