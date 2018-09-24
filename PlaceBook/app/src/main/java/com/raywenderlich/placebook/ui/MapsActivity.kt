@@ -3,6 +3,7 @@ package com.raywenderlich.placebook.ui
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.support.v7.app.AppCompatActivity
@@ -179,14 +180,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
     }
 
     private fun handleInfoWindowClick(marker: Marker) {
-        val placeInfo = marker.tag as? PlaceInfo
-        if (placeInfo?.place != null && placeInfo?.image != null) {
-            launch(CommonPool) {
-                mapsViewModel.addBookmarkFromPlace(placeInfo.place, placeInfo.image)
+        when(marker.tag) {
+            is MapsActivity.PlaceInfo -> {
+
+                val placeInfo = marker.tag as? PlaceInfo
+                if (placeInfo?.place != null && placeInfo.image != null) {
+                    launch(CommonPool) {
+                        mapsViewModel.addBookmarkFromPlace(placeInfo.place, placeInfo.image)
+                    }
+                }
+                marker.remove()
+            }
+            is MapsViewModel.BookmarkView -> {
+                val bookmarkView = marker.tag as? MapsViewModel.BookmarkView
+                marker.hideInfoWindow()
+                bookmarkView?.id?.let { startBookmarkDetails(it) }
             }
         }
-
-        marker.remove()
     }
 
     private fun addPlaceMarker(bookmark: MapsViewModel.BookmarkView): Marker? {
@@ -218,9 +228,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
                 })
     }
 
+    private fun startBookmarkDetails(bookmarkId: Long) {
+        val intent = Intent(this, BookmarkDetailsActivity::class.java)
+        intent.putExtra(EXTRA_BOOKMARK_ID, bookmarkId)
+        startActivity(intent)
+    }
+
     companion object {
         private const val REQUEST_LOCATION = 1
         private const val TAG = "MapsActivity"
+        const val EXTRA_BOOKMARK_ID = "com.raywenderlich.placebook.EXTRA_BOOKMARK_ID"
     }
 
     class PlaceInfo(val place: Place? = null, val image: Bitmap? = null)

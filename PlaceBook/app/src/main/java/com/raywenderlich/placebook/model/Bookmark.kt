@@ -14,7 +14,8 @@ data class Bookmark(
     var latitude: Double = 0.0,
     var longitude: Double = 0.0,
     var phone: String = "",
-    var address: String = ""
+    var address: String = "",
+    var notes: String = ""
 ) {
     fun setImage(image: Bitmap, context: Context) {
         id?.let {
