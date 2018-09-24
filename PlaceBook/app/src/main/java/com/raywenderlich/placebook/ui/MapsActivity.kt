@@ -6,9 +6,12 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.location.Location
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
+import android.support.v7.app.ActionBarDrawerToggle
+import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
@@ -24,7 +27,11 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.raywenderlich.placebook.R
 import com.raywenderlich.placebook.adapter.BookmarkInfoWindowAdapter
+import com.raywenderlich.placebook.adapter.BookmarkListAdapter
 import com.raywenderlich.placebook.viewmodel.MapsViewModel
+import kotlinx.android.synthetic.main.activity_maps.*
+import kotlinx.android.synthetic.main.drawer_view_maps.*
+import kotlinx.android.synthetic.main.main_view_maps.*
 import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.launch
 
@@ -34,6 +41,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var googleApiClient: GoogleApiClient
     private lateinit var mapsViewModel: MapsViewModel
+    private lateinit var bookmarkListAdapter: BookmarkListAdapter
+    private var markers = HashMap<Long, Marker>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,13 +52,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
                 .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         setupLocationClient()
+        setupNavigationDrawer()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
 
         getCurrentLocation()
-
+        setupToolbar()
         setupGoogleClient()
         setupMapListeners()
         setupViewModel()
@@ -77,6 +87,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
 
     override fun onConnectionFailed(result: ConnectionResult) {
         Log.e(TAG, "Google play connection failed: ${result.errorMessage}")
+    }
+
+    fun moveToBookmark(bookmarkView: MapsViewModel.BookmarkView) {
+        drawerLayout.closeDrawer(drawerView)
+
+        val marker = markers[bookmarkView.id]
+
+        val location = Location("")
+        location.longitude = bookmarkView.location.longitude
+        location.latitude = bookmarkView.location.latitude
+
+        updateMapToLocation(location)
+        marker?.showInfoWindow()
     }
 
 
@@ -209,6 +232,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         )
 
         marker.tag = bookmark
+        bookmark.id?.let { markers.put(it, marker) }
         return marker
     }
 
@@ -222,8 +246,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         mapsViewModel.getBookmarkViews()?.observe(this,
                 android.arch.lifecycle.Observer<List<MapsViewModel.BookmarkView>> {
                     map.clear()
+                    markers.clear()
                     it?.let {
                         displayAllBookmarks(it)
+                        bookmarkListAdapter.setBookmarkData(it)
                     }
                 })
     }
@@ -232,6 +258,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         val intent = Intent(this, BookmarkDetailsActivity::class.java)
         intent.putExtra(EXTRA_BOOKMARK_ID, bookmarkId)
         startActivity(intent)
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(toolbar)
+        val toggle = ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.open_drawer, R.string.close_drawer)
+        toggle.syncState()
+    }
+
+    private fun setupNavigationDrawer() {
+        bookmarkRecyclerView.layoutManager = LinearLayoutManager(this)
+        bookmarkListAdapter = BookmarkListAdapter(null, this)
+        bookmarkRecyclerView.adapter = bookmarkListAdapter
+    }
+
+    private fun updateMapToLocation(location: Location) {
+        val latLng = LatLng(location.latitude, location.longitude)
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16f))
     }
 
     companion object {
