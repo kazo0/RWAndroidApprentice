@@ -32,7 +32,9 @@ class BookmarkListAdapter(
 
             holder.itemView.tag = bookmarkView
             holder.nameTextView.text = bookmarkView.name
-            holder.categoryImageView.setImageResource(R.drawable.ic_other)
+            bookmarkView.categoryResourceId?.let {
+                holder.categoryImageView.setImageResource(it)
+            }
 
         }
     }

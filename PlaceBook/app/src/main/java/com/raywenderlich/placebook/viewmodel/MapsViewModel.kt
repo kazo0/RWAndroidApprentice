@@ -29,6 +29,7 @@ class MapsViewModel(application: Application): AndroidViewModel(application) {
             latitude = place.latLng.latitude
             phone = place.phoneNumber.toString()
             address = place.address.toString()
+            category = getPlaceCategory(place)
         }
 
         val newId = bookmarkRepo.addBookmark(bookmark)
@@ -39,6 +40,17 @@ class MapsViewModel(application: Application): AndroidViewModel(application) {
 
     }
 
+    fun addBookmark(latLng: LatLng): Long? {
+        val bookmark = bookmarkRepo.createBookmark()
+
+        bookmark.name = "Untitled"
+        bookmark.longitude = latLng.longitude
+        bookmark.latitude = latLng.latitude
+        bookmark.category = "Other"
+
+        return bookmarkRepo.addBookmark(bookmark)
+    }
+
     fun getBookmarkViews(): LiveData<List<BookmarkView>>? {
         if (bookmarks == null) {
             mapBookmarksToBookmarkViews()
@@ -47,7 +59,13 @@ class MapsViewModel(application: Application): AndroidViewModel(application) {
     }
 
     private fun bookmarkToBookmarkView(bookmark: Bookmark): BookmarkView {
-        return BookmarkView(bookmark.id, LatLng(bookmark.latitude, bookmark.longitude), bookmark.name, bookmark.phone)
+        return BookmarkView(
+                bookmark.id,
+                LatLng(bookmark.latitude, bookmark.longitude),
+                bookmark.name,
+                bookmark.phone,
+                bookmarkRepo.getCategoryResourceId(bookmark.category)
+        )
     }
 
     private fun mapBookmarksToBookmarkViews() {
@@ -61,11 +79,22 @@ class MapsViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    private fun getPlaceCategory(place: Place): String {
+        var category = "Other"
+        val placeTypes = place.placeTypes
+        if (placeTypes.size > 0) {
+            category = bookmarkRepo.placeTypeToCategory(placeTypes[0])
+        }
+
+        return category
+    }
+
     data class BookmarkView(
             var id: Long? = null,
             var location: LatLng = LatLng(0.0, 0.0),
             var name: String = "",
-            var phone: String = ""
+            var phone: String = "",
+            var categoryResourceId: Int? = null
     ) {
         fun getImage(context: Context): Bitmap? =
             id?.let {

@@ -1,5 +1,6 @@
 package com.raywenderlich.placebook.ui
 
+import android.app.Activity
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
@@ -14,11 +15,14 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException
+import com.google.android.gms.common.GooglePlayServicesRepairableException
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.location.*
 import com.google.android.gms.location.places.Place
 import com.google.android.gms.location.places.PlacePhotoMetadata
 import com.google.android.gms.location.places.Places
+import com.google.android.gms.location.places.ui.PlaceAutocomplete
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -65,13 +69,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         setupViewModel()
     }
 
-    private fun setupMapListeners() {
-        map.setInfoWindowAdapter(BookmarkInfoWindowAdapter(this))
-        map.setOnPoiClickListener {
-            displayPoi(it)
-        }
-        map.setOnInfoWindowClickListener { handleInfoWindowClick(it) }
-    }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         when (requestCode) {
@@ -89,6 +86,25 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         Log.e(TAG, "Google play connection failed: ${result.errorMessage}")
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        when (requestCode) {
+            AUTOCOMPLETE_REQUEST_CODE -> {
+                if (resultCode == Activity.RESULT_OK && data != null) {
+                    val place = PlaceAutocomplete.getPlace(this, data)
+
+                    val location = Location("")
+                    location.latitude = place.latLng.latitude
+                    location.longitude = place.latLng.longitude
+                    updateMapToLocation(location)
+
+                    displayPoiGetPhotoMetaDataStep(place)
+                }
+            }
+        }
+    }
+
     fun moveToBookmark(bookmarkView: MapsViewModel.BookmarkView) {
         drawerLayout.closeDrawer(drawerView)
 
@@ -102,6 +118,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         marker?.showInfoWindow()
     }
 
+    private fun setupMapListeners() {
+        map.setInfoWindowAdapter(BookmarkInfoWindowAdapter(this))
+        map.setOnPoiClickListener {
+            displayPoi(it)
+        }
+        map.setOnInfoWindowClickListener { handleInfoWindowClick(it) }
+        map.setOnMapLongClickListener { latLng -> newBookmark(latLng) }
+        fab.setOnClickListener { searchAtCurrentLocation() }
+    }
 
     private fun setupLocationClient() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
@@ -225,7 +250,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
     private fun addPlaceMarker(bookmark: MapsViewModel.BookmarkView): Marker? {
         val marker = map.addMarker(MarkerOptions()
                 .position(bookmark.location)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                .icon(bookmark.categoryResourceId?.let { BitmapDescriptorFactory.fromResource(it) })
                 .title(bookmark.name)
                 .snippet(bookmark.phone)
                 .alpha(0.8f)
@@ -277,9 +302,35 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleApiClient.On
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16f))
     }
 
+    private fun searchAtCurrentLocation() {
+        val bounds = map.projection.visibleRegion.latLngBounds
+
+        try {
+            val intent = PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_OVERLAY)
+                    .setBoundsBias(bounds)
+                    .build(this)
+
+            startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE)
+        } catch (e: GooglePlayServicesRepairableException) {
+            //TODO: Handle exception
+        } catch (e: GooglePlayServicesNotAvailableException) {
+            //TODO: Handle exception
+        }
+    }
+
+    private fun newBookmark(latLng: LatLng) {
+        launch(CommonPool) {
+            val bookmarkId = mapsViewModel.addBookmark(latLng)
+            bookmarkId?.let {
+                startBookmarkDetails(it)
+            }
+        }
+    }
+
     companion object {
         private const val REQUEST_LOCATION = 1
         private const val TAG = "MapsActivity"
+        private const val AUTOCOMPLETE_REQUEST_CODE = 2
         const val EXTRA_BOOKMARK_ID = "com.raywenderlich.placebook.EXTRA_BOOKMARK_ID"
     }
 

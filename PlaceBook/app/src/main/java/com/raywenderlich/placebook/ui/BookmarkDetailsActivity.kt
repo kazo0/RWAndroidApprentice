@@ -1,6 +1,7 @@
 package com.raywenderlich.placebook.ui
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
@@ -14,6 +15,9 @@ import android.support.v4.content.FileProvider
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import com.raywenderlich.placebook.R
 import com.raywenderlich.placebook.model.Bookmark
@@ -48,6 +52,10 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
         when (item?.itemId) {
             R.id.action_save -> {
                 saveChanges()
+                return true
+            }
+            R.id.action_delete -> {
+                deleteBookmark()
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
@@ -136,7 +144,39 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
             val image = it.getImage(this)
             image?.let {
                 imageViewPlace.setImageBitmap(it)
-                imageViewPlace.setOnClickListener { replaceImage() }
+            }
+            imageViewPlace.setOnClickListener { replaceImage() }
+        }
+    }
+
+    private fun populateCategories() {
+        bookmarkDetailsView?.let { bookmarkView ->
+            val resourceId = bookmarkDetailsViewModel.getCategoryResourceId(bookmarkView.category)
+            resourceId?.let { imageViewCategory.setImageResource(it) }
+
+            val categories = bookmarkDetailsViewModel.getCategories()
+            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+            spinnerCategory.adapter = adapter
+            val category = bookmarkView.category
+
+            spinnerCategory.setSelection(adapter.getPosition(category))
+
+            spinnerCategory.post {
+                spinnerCategory.onItemSelectedListener = object :
+                        AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(parent: AdapterView<*>, view: View,
+                                                position: Int, id: Long) {
+                        val category = parent.getItemAtPosition(position) as String
+                        val resourceId =
+                                bookmarkDetailsViewModel.getCategoryResourceId(category)
+                        resourceId?.let {
+                            imageViewCategory.setImageResource(it) }
+                    }
+                    override fun onNothingSelected(parent: AdapterView<*>) {
+                        // NOTE: This method is required but not used.
+                    } }
             }
         }
     }
@@ -151,6 +191,7 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
                     bookmarkDetailsView = it
                     populateFields()
                     populateImageView()
+                    populateCategories()
                 }
             }
         )
@@ -167,6 +208,7 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
             it.phone = editTextPhone.text.toString()
             it.address = editTextAddress.text.toString()
             it.notes = editTextNotes.text.toString()
+            it.category = spinnerCategory.selectedItem as String
             bookmarkDetailsViewModel.updateBookmark(it)
         }
 
@@ -200,7 +242,22 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
                         R.dimen.default_image_width),
                 resources.getDimensionPixelSize(
                         R.dimen.default_image_height),
-                this) }
+                this)
+    }
+
+    private fun deleteBookmark() {
+        bookmarkDetailsView?.let {
+            AlertDialog.Builder(this)
+                    .setMessage("Delete?")
+                    .setPositiveButton("Ok") { _, _ ->
+                        bookmarkDetailsViewModel.deleteBookmark(it)
+                        finish()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .create()
+                    .show()
+        }
+    }
 
     companion object {
         private const val REQUEST_CAPTURE_IMAGE = 1
