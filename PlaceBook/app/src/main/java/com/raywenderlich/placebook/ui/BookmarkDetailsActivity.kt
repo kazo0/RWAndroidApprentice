@@ -1,9 +1,12 @@
 package com.raywenderlich.placebook.ui
 
+import android.app.Activity
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.provider.MediaStore
@@ -78,8 +81,36 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
         }
     }
     override fun onPickClick() {
-        Toast.makeText(this, "Gallery Pick",
-                Toast.LENGTH_SHORT).show()
+        val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+
+        startActivityForResult(pickIntent, REQUEST_GALLERY_IMAGE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK) {
+            when (requestCode) {
+                REQUEST_CAPTURE_IMAGE -> {
+                    photoFile?.let {
+                        val uri = FileProvider.getUriForFile(
+                                this,
+                                "com.raywenderlich.placebook.fileprovider",
+                                it
+                        )
+                        revokeUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        val image = getImageWithPath(it.absolutePath)
+                        image?.let { updateImage(it) }
+                    }
+                }
+                REQUEST_GALLERY_IMAGE -> {
+                    if (data?.data != null) {
+                        val imageUri = data.data
+                        val image = getImageWithAuthority(imageUri)
+                        image?.let { updateImage(it) }
+                    }
+                }
+            }
+        }
     }
 
     private fun setupToolbar() {
@@ -148,7 +179,31 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
                 ?.show(supportFragmentManager, "photoOptionDialog")
     }
 
+    private fun updateImage(image: Bitmap) {
+        bookmarkDetailsView?.let { bookmarkView ->
+            imageViewPlace.setImageBitmap(image)
+            bookmarkView.setImage(this, image)
+        }
+    }
+
+    private fun getImageWithPath(filePath: String): Bitmap? {
+        return ImageUtils.decodeFileToSize(filePath,
+                resources.getDimensionPixelSize(
+                        R.dimen.default_image_width),
+                resources.getDimensionPixelSize(
+                        R.dimen.default_image_height))
+    }
+
+    private fun getImageWithAuthority(uri: Uri): Bitmap? {
+        return ImageUtils.decodeUriStreamToSize(uri,
+                resources.getDimensionPixelSize(
+                        R.dimen.default_image_width),
+                resources.getDimensionPixelSize(
+                        R.dimen.default_image_height),
+                this) }
+
     companion object {
         private const val REQUEST_CAPTURE_IMAGE = 1
+        private const val REQUEST_GALLERY_IMAGE = 2
     }
 }
