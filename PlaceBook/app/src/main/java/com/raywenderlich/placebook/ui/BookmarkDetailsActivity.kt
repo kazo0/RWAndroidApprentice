@@ -28,6 +28,7 @@ import kotlinx.android.synthetic.main.activity_bookmarks_details.*
 import kotlinx.android.synthetic.main.content_bookmark_info.*
 import java.io.File
 import java.io.IOException
+import java.net.URLEncoder
 
 class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
     private lateinit var bookmarkDetailsViewModel: BookmarkDetailsViewModel
@@ -41,6 +42,7 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
         setupToolbar()
         setupViewModel()
         getIntentData()
+        setupFab()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -257,6 +259,30 @@ class BookmarkDetailsActivity: AppCompatActivity(), PhotoOptionDialogListener {
                     .create()
                     .show()
         }
+    }
+
+    private fun sharePlace() {
+        bookmarkDetailsView?.let { bookmarkView ->
+            var mapUrl = if (bookmarkView.placeId == null) {
+                val location = URLEncoder.encode("${bookmarkView.latitiude},${bookmarkView.longitude}", "utf-8")
+                "https://www.google.com/maps/dir/?api=1&destination=$location"
+            } else {
+                val name = URLEncoder.encode(bookmarkView.name, "utf-8")
+                "https://www.google.com/maps/dir/?api=1&destination=$name&destination_place_id=${bookmarkView.placeId}"
+            }
+
+            val sendIntent = Intent(Intent.ACTION_SEND)
+            sendIntent.putExtra(Intent.EXTRA_TEXT,
+                    "Check out ${bookmarkView.name} at:\n$mapUrl")
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT,
+                    "Sharing ${bookmarkView.name}")
+            sendIntent.type = "text/plain"
+            startActivity(sendIntent)
+        }
+    }
+
+    private fun setupFab() {
+        fab.setOnClickListener { sharePlace() }
     }
 
     companion object {
