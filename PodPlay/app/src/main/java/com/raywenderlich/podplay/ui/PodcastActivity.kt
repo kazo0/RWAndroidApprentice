@@ -4,22 +4,19 @@ import android.app.SearchManager
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
-import android.nfc.Tag
-import android.opengl.Visibility
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.SearchView
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import com.raywenderlich.podplay.R
-import com.raywenderlich.podplay.model.Podcast
 import com.raywenderlich.podplay.repository.ItunesRepo
-import com.raywenderlich.podplay.repository.PodcastListAdapter
+import com.raywenderlich.podplay.adapter.PodcastListAdapter
 import com.raywenderlich.podplay.repository.PodcastRepo
+import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.ItunesService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
@@ -134,7 +131,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
         podcastViewModel = ViewModelProviders.of(this)
                 .get(PodcastViewModel::class.java)
-        podcastViewModel.podcastRepo = PodcastRepo()
+        podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance)
     }
 
     private fun updateControls() {

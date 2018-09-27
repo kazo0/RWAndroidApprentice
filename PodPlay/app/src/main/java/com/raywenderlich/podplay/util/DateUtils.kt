@@ -15,4 +15,16 @@ object DateUtils {
         }
         return "-"
     }
+
+    fun xmlDateToDate(xmlDate: String?): Date {
+        val date = xmlDate ?: return Date()
+        val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
+        return inFormat.parse(date)
+    }
+
+    fun dateToShortDate(date: Date): String {
+        val outputFormat = DateFormat.getDateInstance(
+                DateFormat.SHORT, Locale.getDefault())
+        return outputFormat.format(date)
+    }
 }

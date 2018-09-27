@@ -1,4 +1,4 @@
-package com.raywenderlich.podplay.repository
+package com.raywenderlich.podplay.adapter
 
 import android.app.Activity
 import android.support.v7.widget.RecyclerView
@@ -47,7 +47,7 @@ class PodcastListAdapter(private var podcastSummaryViewList: List<SearchViewMode
     override fun onCreateViewHolder(
             parent: ViewGroup,
             viewType: Int):
-            PodcastListAdapter.ViewHolder {
+            ViewHolder {
         return ViewHolder(LayoutInflater.from(parent.context)
                 .inflate(R.layout.search_item, parent, false),
                 podcastListAdapterListener)

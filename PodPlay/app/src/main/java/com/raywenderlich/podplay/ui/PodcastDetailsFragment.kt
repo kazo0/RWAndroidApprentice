@@ -3,15 +3,19 @@ package com.raywenderlich.podplay.ui
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.widget.LinearLayoutManager
+import android.text.method.ScrollingMovementMethod
 import android.view.*
 import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.R
-import com.raywenderlich.podplay.repository.PodcastRepo
+import com.raywenderlich.podplay.adapter.EpisodeListAdapter
+import com.raywenderlich.podplay.util.HtmlUtils
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import kotlinx.android.synthetic.main.fragment_podcast_details.*
 
 class PodcastDetailsFragment: Fragment() {
     private lateinit var podcastViewModel: PodcastViewModel
+    private lateinit var episodeListAdapter: EpisodeListAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,13 +37,14 @@ class PodcastDetailsFragment: Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
+        setupControls()
         updateControls()
     }
 
     private fun updateControls() {
         podcastViewModel.podcastView?.let {
-            feedTitleTextView.text = it.feedTitle
-            feedDescTextView.text = it.feedDesc
+            feedTitleTextView.text = HtmlUtils.htmlToSpannable(it.feedTitle ?: "")
+            feedDescTextView.text = HtmlUtils.htmlToSpannable(it.feedDesc ?: "")
 
             Glide.with(requireActivity())
                     .load(it.imageUrl)
@@ -50,6 +55,22 @@ class PodcastDetailsFragment: Fragment() {
     private fun setupViewModel() {
         podcastViewModel = ViewModelProviders.of(requireActivity())
                 .get(PodcastViewModel::class.java)
+    }
+
+    private fun setupControls() {
+        feedDescTextView.movementMethod = ScrollingMovementMethod()
+
+        episodeRecyclerView.setHasFixedSize(true)
+        val layoutManager = LinearLayoutManager(activity)
+        episodeRecyclerView.layoutManager = layoutManager
+        val dividerItemDecoration =
+                android.support.v7.widget.DividerItemDecoration(
+                        episodeRecyclerView.context, layoutManager.orientation)
+        episodeRecyclerView.addItemDecoration(dividerItemDecoration)
+
+        episodeListAdapter = EpisodeListAdapter(
+                podcastViewModel.podcastView?.episodes)
+        episodeRecyclerView.adapter = episodeListAdapter
     }
 
     companion object {
