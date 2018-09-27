@@ -95,4 +95,5 @@ interface FeedService {
         val instance: FeedService by lazy {
             RssFeedService()
         }
-    } }
+    }
+}
