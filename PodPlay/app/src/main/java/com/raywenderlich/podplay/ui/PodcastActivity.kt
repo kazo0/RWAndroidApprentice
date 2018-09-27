@@ -1,6 +1,7 @@
 package com.raywenderlich.podplay.ui
 
 import android.app.SearchManager
+import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
@@ -15,6 +16,7 @@ import android.view.View
 import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.adapter.PodcastListAdapter
+import com.raywenderlich.podplay.db.PodPlayDatabase
 import com.raywenderlich.podplay.repository.PodcastRepo
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.ItunesService
@@ -22,7 +24,9 @@ import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
 import kotlinx.android.synthetic.main.activity_podcast.*
 
-class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapterListener {
+class PodcastActivity : AppCompatActivity(),
+        PodcastListAdapter.PodcastListAdapterListener,
+        PodcastDetailsFragment.OnPodcastDetailsListener {
 
     private lateinit var searchViewModel: SearchViewModel
     private lateinit var podcastViewModel: PodcastViewModel
@@ -35,6 +39,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         setupToolbar()
         setupViewModels()
         updateControls()
+        setupPodcastsListView()
         handleIntent(intent)
         addBackStackListener()
     }
@@ -44,6 +49,15 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
             menuInflater.inflate(R.menu.menu_search, menu)
 
             searchMenuItem = menu.findItem(R.id.search_item)
+            searchMenuItem.setOnActionExpandListener(object: MenuItem.OnActionExpandListener {
+                override fun onMenuItemActionExpand(p0: MenuItem?): Boolean {
+                    return true
+                }
+                override fun onMenuItemActionCollapse(p0: MenuItem?): Boolean {
+                    showSubscribedPodcasts()
+                    return true
+                }
+            })
             val searchView = searchMenuItem.actionView as SearchView
 
             val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
@@ -79,6 +93,16 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
                 showError("Error loading feed: $feedUrl")
             }
         }
+    }
+
+    override fun onSubscribe() {
+        podcastViewModel.saveActivePodcast()
+        supportFragmentManager.popBackStack()
+    }
+
+    override fun onUnsubscribe() {
+        podcastViewModel.deleteActivePodcast()
+        supportFragmentManager.popBackStack()
     }
 
     private fun showPodcastDetailsFragment() {
@@ -131,7 +155,8 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
         podcastViewModel = ViewModelProviders.of(this)
                 .get(PodcastViewModel::class.java)
-        podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance)
+        val podcastDb = PodPlayDatabase.getInstance(this)
+        podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance, podcastDb.podcastDao())
     }
 
     private fun updateControls() {
@@ -167,6 +192,19 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
             if (supportFragmentManager.backStackEntryCount == 0) {
                 podcastRecyclerView.visibility = View.VISIBLE
             }
+        }
+    }
+
+    private fun setupPodcastsListView() {
+        podcastViewModel.getPodcasts()?.observe(this, Observer { if (it != null) showSubscribedPodcasts() })
+    }
+
+    private fun showSubscribedPodcasts() {
+        val podcasts = podcastViewModel.getPodcasts()?.value
+
+        if (podcasts != null) {
+            toolbar.title = getString(R.string.subscribed_podcasts)
+            podcastListAdapter.setSearchData(podcasts)
         }
     }
 
