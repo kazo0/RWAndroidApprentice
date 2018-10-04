@@ -13,11 +13,13 @@ import android.support.v7.widget.SearchView
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import com.firebase.jobdispatcher.*
 import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.adapter.PodcastListAdapter
 import com.raywenderlich.podplay.db.PodPlayDatabase
 import com.raywenderlich.podplay.repository.PodcastRepo
+import com.raywenderlich.podplay.service.EpisodeUpdateService
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.ItunesService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
@@ -42,6 +44,7 @@ class PodcastActivity : AppCompatActivity(),
         setupPodcastsListView()
         handleIntent(intent)
         addBackStackListener()
+        scheduleJobs()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -132,6 +135,15 @@ class PodcastActivity : AppCompatActivity(),
             val query = intent.getStringExtra(SearchManager.QUERY)
             performSearch(query)
         }
+
+        val feedUrl = intent.getStringExtra(EpisodeUpdateService.EXTRA_FEED_URL)
+        if (feedUrl != null) {
+            podcastViewModel.setActivePodcast(feedUrl) {
+                it?.let { summaryView ->
+                    onShowDetails(summaryView)
+                }
+            }
+        }
     }
 
     private fun performSearch(term: String) {
@@ -208,8 +220,29 @@ class PodcastActivity : AppCompatActivity(),
         }
     }
 
+    private fun scheduleJobs() {
+        val dispatcher = FirebaseJobDispatcher(GooglePlayDriver(this))
+
+        val oneHourInSeconds = 60*60
+        val tenMinutesInSeconds = 60*10
+        val episodeUpdateJob = dispatcher.newJobBuilder()
+                .setService(EpisodeUpdateService::class.java)
+                .setTag(TAG_EPISODE_UPDATE_JOB)
+                .setRecurring(true)
+                .setTrigger(Trigger.executionWindow(oneHourInSeconds,
+                        (oneHourInSeconds + tenMinutesInSeconds)))
+                .setLifetime(Lifetime.FOREVER)
+                .setConstraints(
+                        Constraint.ON_UNMETERED_NETWORK,
+                        Constraint.DEVICE_CHARGING
+                )
+                .build()
+        dispatcher.mustSchedule(episodeUpdateJob)
+    }
+
     companion object {
         val TAG: String = PodcastActivity::class.java.simpleName
         private val TAG_DETAILS_FRAGMENT = "DetailsFragment"
+        private val TAG_EPISODE_UPDATE_JOB = "com.raywenderlich.podplay.episodes"
     }
 }
