@@ -108,6 +108,11 @@ class PodcastActivity : AppCompatActivity(),
         supportFragmentManager.popBackStack()
     }
 
+    override fun onShowEpisodePlayer(episodeViewData: PodcastViewModel.EpisodeView) {
+        podcastViewModel.activeEpisodeView = episodeViewData
+        showPlayerFragment()
+    }
+
     private fun showPodcastDetailsFragment() {
         var detailsFragment = createPodcastDetailsFragment()
 
@@ -240,9 +245,34 @@ class PodcastActivity : AppCompatActivity(),
         dispatcher.mustSchedule(episodeUpdateJob)
     }
 
+    private fun createEpisodePlayerFragment(): EpisodePlayerFragment {
+        var episodePlayerFragment =
+                supportFragmentManager.findFragmentByTag(TAG_PLAYER_FRAGMENT) as
+                        EpisodePlayerFragment?
+        if (episodePlayerFragment == null) {
+            episodePlayerFragment = EpisodePlayerFragment.newInstance()
+        }
+        return episodePlayerFragment
+    }
+
+    private fun showPlayerFragment() {
+        val episodePlayerFragment = createEpisodePlayerFragment()
+
+        supportFragmentManager.beginTransaction()
+                .replace(R.id.podcastDetailsContainer,
+                        episodePlayerFragment,
+                        TAG_PLAYER_FRAGMENT)
+                .addToBackStack("PlayerFragment")
+                .commit()
+
+        podcastRecyclerView.visibility = View.INVISIBLE
+        searchMenuItem.isVisible = false
+    }
+
     companion object {
         val TAG: String = PodcastActivity::class.java.simpleName
         private val TAG_DETAILS_FRAGMENT = "DetailsFragment"
         private val TAG_EPISODE_UPDATE_JOB = "com.raywenderlich.podplay.episodes"
+        private const val TAG_PLAYER_FRAGMENT = "PlayerFragment"
     }
 }

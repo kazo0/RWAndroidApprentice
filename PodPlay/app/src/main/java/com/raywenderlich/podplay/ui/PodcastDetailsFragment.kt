@@ -27,15 +27,12 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
     private lateinit var episodeListAdapter: EpisodeListAdapter
     private var listener: OnPodcastDetailsListener? = null
     private var menuItem: MenuItem? = null
-    private lateinit var mediaBrowser: MediaBrowserCompat
-    private var mediaControllerCallback: MediaControllerCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setHasOptionsMenu(true)
         setupViewModel()
-        initMediaBrowser()
     }
 
     override fun onAttach(context: Context?) {
@@ -83,39 +80,8 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
         updateControls()
     }
 
-    override fun onStart() {
-        super.onStart()
-        if (mediaBrowser.isConnected) {
-            if (MediaControllerCompat.getMediaController(requireActivity()) == null) {
-                registerMediaController(mediaBrowser.sessionToken)
-            }
-        } else {
-            mediaBrowser.connect()
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        if (MediaControllerCompat.getMediaController(requireActivity()) != null) {
-            mediaControllerCallback?.let {
-                MediaControllerCompat.getMediaController(requireActivity())
-                        .unregisterCallback(it)
-            }
-        }
-    }
-
     override fun onSelectedEpisode(episodeView: PodcastViewModel.EpisodeView) {
-        val controller = MediaControllerCompat.getMediaController(requireActivity())
-
-        if (controller.playbackState != null) {
-            if (controller.playbackState.state == PlaybackStateCompat.STATE_PLAYING) {
-                controller.transportControls.pause()
-            } else {
-                startPlaying(episodeView)
-            }
-        } else {
-            startPlaying(episodeView)
-        }
+        listener?.onShowEpisodePlayer(episodeView)
     }
 
     private fun updateControls() {
@@ -156,37 +122,7 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
             getString(R.string.unsubscribe) else getString(R.string.subscribe)
     }
 
-    private fun registerMediaController(token: MediaSessionCompat.Token) {
-        val mediaController = MediaControllerCompat(activity, token)
-        MediaControllerCompat.setMediaController(requireActivity(), mediaController)
 
-        mediaControllerCallback = MediaControllerCallback()
-        mediaController.registerCallback(mediaControllerCallback!!)
-
-    }
-
-    private fun initMediaBrowser() {
-        mediaBrowser = MediaBrowserCompat(activity, ComponentName(requireActivity(),
-                PodPlayMediaService::class.java),
-                MediaBrowserCallBacks(),
-                null)
-
-
-    }
-
-    private fun startPlaying(episodeView: PodcastViewModel.EpisodeView) {
-        val controller = MediaControllerCompat.getMediaController(requireActivity())
-        val viewData = podcastViewModel.podcastView ?: return
-        val bundle = Bundle()
-        bundle.putString(MediaMetadataCompat.METADATA_KEY_TITLE,
-                episodeView.title)
-        bundle.putString(MediaMetadataCompat.METADATA_KEY_ARTIST,
-                viewData.feedTitle)
-        bundle.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI,
-                viewData.imageUrl)
-        controller.transportControls.playFromUri(
-                Uri.parse(episodeView.mediaUrl), bundle)
-    }
 
     companion object {
         fun newInstance(): PodcastDetailsFragment {
@@ -197,31 +133,8 @@ class PodcastDetailsFragment: Fragment(), EpisodeListAdapter.EpisodeListAdapterL
     interface OnPodcastDetailsListener {
         fun onSubscribe()
         fun onUnsubscribe()
+        fun onShowEpisodePlayer(episodeViewData: PodcastViewModel.EpisodeView)
     }
 
-    inner class MediaControllerCallback: MediaControllerCompat.Callback() {
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            println("metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI)}")
-        }
 
-        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-            println("state changed to $state")
-        }
-    }
-
-    inner class MediaBrowserCallBacks:
-            MediaBrowserCompat.ConnectionCallback() {
-        override fun onConnected() {
-            super.onConnected()
-            registerMediaController(mediaBrowser.sessionToken)
-            println("onConnected")
-        }
-        override fun onConnectionSuspended() {
-            super.onConnectionSuspended()
-            println("onConnectionSuspended")
-        }
-        override fun onConnectionFailed() {
-            super.onConnectionFailed()
-            println("onConnectionFailed")
-        } }
 }
